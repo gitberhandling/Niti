@@ -1,0 +1,84 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - "backend/**"
+  pull_request:
+    branches: [main]
+    paths:
+      - "backend/**"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: niti_test
+          POSTGRES_USER: admin
+          POSTGRES_PASSWORD: admin
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        working-directory: backend
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov pytest-asyncio
+
+      - name: Copy env file
+        working-directory: backend
+        run: cp .env.example .env
+
+      - name: Run tests with coverage
+        working-directory: backend
+        env:
+          POSTGRES_HOST: localhost
+          POSTGRES_DB: niti_test
+          POSTGRES_USER: admin
+          POSTGRES_PASSWORD: admin
+          APP_ENV: development
+          SECRET_KEY: ci-test-secret
+          KEYCLOAK_URL: http://localhost:8080
+          KEYCLOAK_REALM: niti-ledger
+          KEYCLOAK_CLIENT_ID: backend-client
+          KEYCLOAK_CLIENT_SECRET: ci-secret
+          MINIO_ENDPOINT: localhost:9000
+          MINIO_ACCESS_KEY: minio
+          MINIO_SECRET_KEY: minio123
+          MINIO_BUCKET: niti-documents
+          MILVUS_HOST: localhost
+          MILVUS_PORT: "19530"
+          MILVUS_COLLECTION: contractor_faces
+          FABRIC_CHANNEL: niti-channel
+          FABRIC_CHAINCODE: niti-contract
+          FABRIC_ORG1_MSP: Org1MSP
+          FABRIC_ORG2_MSP: Org2MSP
+          FABRIC_PEER_ENDPOINT: localhost:7051
+          ALLOWED_ORIGINS: http://localhost:3000
+        run: |
+          pytest --cov=app --cov-report=term-missing --cov-report=xml -v
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          file: backend/coverage.xml

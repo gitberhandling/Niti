@@ -1,0 +1,40 @@
+rules:
+  - id: R001
+    name: duplicate_contractor
+    description: Same face found in Milvus for different contractor ID
+    severity: red
+    action: block_and_alert
+
+  - id: R002
+    name: budget_overshoot
+    description: Disbursed amount exceeds totalBudget by more than 5%
+    severity: red
+    threshold_percent: 5
+    action: block_and_alert
+
+  - id: R003
+    name: milestone_backdating
+    description: Milestone completion date is before project creation date
+    severity: red
+    action: block_and_alert
+
+  - id: R004
+    name: rapid_milestone_completion
+    description: All milestones marked complete within 24 hours of project creation
+    severity: amber
+    window_hours: 24
+    action: flag_for_review
+
+  - id: R005
+    name: document_hash_mismatch
+    description: Re-submitted document hash differs from original on-chain hash
+    severity: amber
+    action: flag_for_review
+
+  - id: R006
+    name: low_biometric_confidence
+    description: 1:1 face match score between 0.50 and 0.70
+    severity: amber
+    score_min: 0.50
+    score_max: 0.70
+    action: flag_for_review
